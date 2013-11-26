@@ -1,0 +1,1305 @@
+Microsoft (R) Macro Assembler Version 11.00.50727.1	    03/02/13 12:37:20
+ Prime Numbers       (Prog05.asm			     Page 1 - 1
+
+
+				TITLE Prime Numbers       (Prog05.asm)
+
+				; Author: Rebecca Sagalyn
+				; Course / Project ID: CS271 #05		Date: 2/28/13
+				; Description:
+				; 1. Introduce the program.
+				; 2. Get a user request in the range [min=10 .. max=200].
+				; 3. Generate request random integers in the range [lo=100 .. hi=999], storing them in consecutive elements of an array.
+				; 4. Display the list of integers before sorting, 10 numbers per line.
+				; 5. Sort the list in descending order (i.e., largest first).
+				; 6. Calculate and display the median value, rounded to the nearest integer.
+				; 7. Display the sorted list, 10 numbers per line.
+				
+				; Extra Credit (Be sure to describe your extras in the program header block): 
+				;   2. Use a recursive sorting algorithm (e.g., Merge Sort, Quick Sort, Heap Sort, etc.). 
+				;   4. Generate the numbers into a file; then read the file into the array. 
+
+				;   1. Display the numbers ordered by column instead of by row. 
+				;   3. Implement the program using floating-point numbers and the floating-point processor. 
+				;   5. Others? 
+
+
+
+
+				INCLUDE Irvine32.inc
+			      C ; Include file for Irvine32.lib             (Irvine32.inc)
+			      C 
+			      C ;OPTION CASEMAP:NONE		; optional: make identifiers case-sensitive
+			      C 
+			      C INCLUDE SmallWin.inc		; MS-Windows prototypes, structures, and constants
+			      C .NOLIST
+			      C .LIST
+			      C 
+			      C INCLUDE VirtualKeys.inc
+			      C ; VirtualKeys.inc
+			      C .NOLIST
+			      C .LIST
+			      C 
+			      C 
+			      C .NOLIST
+			      C .LIST
+			      C 
+
+				;********************************************************************************** 
+				;*								 SHARED DATA			                          * 
+				;********************************************************************************** 
+
+ = DWORD PTR [ebp-4]		local_1	EQU DWORD PTR [ebp-4]
+ = DWORD PTR [ebp-8]		local_2	EQU DWORD PTR [ebp-8]
+ = DWORD PTR [ebp-12]		local_3	EQU DWORD PTR [ebp-12]
+ = 0000000A			MIN = 10
+ = 000000C8			MAX = 200
+ = 00000064			LO = 100
+ = 000003E7			HI = 999
+ 00000000			.data
+ 00000000 53 6F 72 74 69		intro1		BYTE	"Sorting Random Integers		Programmed by Rebecca Sagalyn",02h,0Dh,0Ah,0Ah
+	   6E 67 20 52 61
+	   6E 64 6F 6D 20
+	   49 6E 74 65 67
+	   65 72 73 09 09
+	   50 72 6F 67 72
+	   61 6D 6D 65 64
+	   20 62 79 20 52
+	   65 62 65 63 63
+	   61 20 53 61 67
+	   61 6C 79 6E 02
+	   0D 0A 0A
+ 0000003A  54 68 69 73 20					BYTE	"This program generates random numbers in the range [100 .. 999], ",0Dh, 0Ah
+	   70 72 6F 67 72
+	   61 6D 20 67 65
+	   6E 65 72 61 74
+	   65 73 20 72 61
+	   6E 64 6F 6D 20
+	   6E 75 6D 62 65
+	   72 73 20 69 6E
+	   20 74 68 65 20
+	   72 61 6E 67 65
+	   20 5B 31 30 30
+	   20 2E 2E 20 39
+	   39 39 5D 2C 20
+	   0D 0A
+ 0000007D  64 69 73 70 6C					BYTE	"displays the original list, sorts the list, and calculates the median value.",0Dh, 0Ah
+	   61 79 73 20 74
+	   68 65 20 6F 72
+	   69 67 69 6E 61
+	   6C 20 6C 69 73
+	   74 2C 20 73 6F
+	   72 74 73 20 74
+	   68 65 20 6C 69
+	   73 74 2C 20 61
+	   6E 64 20 63 61
+	   6C 63 75 6C 61
+	   74 65 73 20 74
+	   68 65 20 6D 65
+	   64 69 61 6E 20
+	   76 61 6C 75 65
+	   2E 0D 0A
+ 000000CB  46 69 6E 61 6C					BYTE	"Finally, it displays the list sorted in desc order.",0Dh,0Ah,0Dh,0Ah,0
+	   6C 79 2C 20 69
+	   74 20 64 69 73
+	   70 6C 61 79 73
+	   20 74 68 65 20
+	   6C 69 73 74 20
+	   73 6F 72 74 65
+	   64 20 69 6E 20
+	   64 65 73 63 20
+	   6F 72 64 65 72
+	   2E 0D 0A 0D 0A
+	   00
+ 00000103 0D 0A 48 6F 77		prompt		BYTE	0Dh, 0Ah,"How many numbers should be generated?  [10 .. 200]:  ",0
+	   20 6D 61 6E 79
+	   20 6E 75 6D 62
+	   65 72 73 20 73
+	   68 6F 75 6C 64
+	   20 62 65 20 67
+	   65 6E 65 72 61
+	   74 65 64 3F 20
+	   20 5B 31 30 20
+	   2E 2E 20 32 30
+	   30 5D 3A 20 20
+	   00
+ 0000013B 49 6E 76 61 6C		err_str		BYTE	"Invalid input",0
+	   69 64 20 69 6E
+	   70 75 74 00
+ 00000149 54 68 65 20 75		strUn		BYTE	"The unsorted random numbers:",0
+	   6E 73 6F 72 74
+	   65 64 20 72 61
+	   6E 64 6F 6D 20
+	   6E 75 6D 62 65
+	   72 73 3A 00
+ 00000166 = 0000001D			SIZE_UN	= ($ - strUn)
+ 00000166 54 68 65 20 6D		prompt2		BYTE	"The median is:  ",0
+	   65 64 69 61 6E
+	   20 69 73 3A 20
+	   20 00
+ 00000177 54 68 65 20 73		strSort		BYTE	"The sorted list:",0
+	   6F 72 74 65 64
+	   20 6C 69 73 74
+	   3A 00
+ 00000188 = 00000011			SIZE_SORT = ($ - strSort)
+ 00000188 00000000			request		DWORD	?
+ 0000018C				arr			DWORD	MAX	DUP(?)
+ 000004AC 00000000			lf			DWORD ?
+ 000004B0 00000000			rt			DWORD ?
+ 000004B4 00000000			outHandle	DWORD ?												; handle to standard console output device
+ 000004B8 00000000			fHandle		DWORD ?												; handle to output file
+ 000004BC 43 3A 5C 55 73		fname		BYTE "C:\Users\Rebecca\Desktop\test.txt",0			; file name	
+	   65 72 73 5C 52
+	   65 62 65 63 63
+	   61 5C 44 65 73
+	   6B 74 6F 70 5C
+	   74 65 73 74 2E
+	   74 78 74 00
+ 000004DE  00000005 [			buff		BYTE 5 DUP(0)										; buffer pointer
+	    00
+	   ]
+
+				;********************************************************************************** 
+				;*								 PROCEDURES				                          * 
+				;********************************************************************************** 
+
+ 00000000			.code
+
+				;----------------------------------------------------------------------------------
+ 00000000			main PROC
+					INVOKE	GetStdHandle, STD_OUTPUT_HANDLE					; init handle
+ 00000007  A3 000004B4 R		mov		[outHandle], eax								; store handle in outHandle
+				; Intro
+ 0000000C  68 00000000 R		push	OFFSET intro1									; @intro1
+ 00000011  E8 00000095			call	intro											; Introduce program
+				; Get number from user, store in request					
+ 00000016  68 0000013B R		push	OFFSET err_str									; @err_str
+ 0000001B  68 00000103 R		push	OFFSET prompt									; @prompt
+ 00000020  68 00000188 R		push	OFFSET request									; @request
+ 00000025  E8 00000092			call	getData											; Get user data
+					exit
+				; Generate random numbers into file, one per line
+ 00000031  E8 00000000 E		call	Randomize
+ 00000036  68 000004DE R		push	OFFSET buff										; @buff
+ 0000003B  68 000004B8 R		push	OFFSET fhandle									; @fhandle
+ 00000040  68 000004BC R		push	OFFSET fname									; @fname (file to write to)
+ 00000045  FF 35 00000188 R		push	request											; request
+ 0000004B  E8 00000157			call	writeNums
+				; Read numbers from file into array
+ 00000050  68 000004DE R		push	OFFSET buff										; @buff
+ 00000055  68 0000018C R		push	OFFSET arr										; @arr
+ 0000005A  68 000004BC R		push	OFFSET fname									; @fname (file to write to)
+ 0000005F  FF 35 00000188 R		push	request											; request
+ 00000065  E8 000000BA			call	readNums
+				; Display unsorted list
+ 0000006A  68 00000149 R		push	OFFSET strUn
+ 0000006F  68 0000018C R		push	OFFSET arr
+ 00000074  FF 35 00000188 R		push	request
+ 0000007A  E8 0000031A			call	displayList
+				; Sort List
+ 0000007F  68 0000018C R		push	OFFSET arr										; @arr
+ 00000084  FF 35 00000188 R		push	request											; request
+ 0000008A  E8 0000018E			call	sortList
+				; Display sorted list
+ 0000008F  68 00000177 R		push	OFFSET strSort
+ 00000094  68 0000018C R		push	OFFSET arr
+ 00000099  FF 35 00000188 R		push	request
+ 0000009F  E8 000002F5			call	displayList
+
+				; Display median
+				; Calculate and display the median value, rounded to the nearest integer.
+					exit
+
+ 000000AB			main ENDP
+
+
+				;----------------------------------------------------------------------------------
+ 000000AB			intro PROC
+				; Introduces program and programmer, and describes program.
+				; Receives: [ebp+8] = @intro1
+				; Returns: nothing
+				; Proconditions: none
+				; Registers changed: none
+				;----------------------------------------------------------------------------------
+ 000000AB  55				push	ebp
+ 000000AC  8B EC			mov		ebp, esp
+ 000000AE  52				push	edx
+ 000000AF  8B 55 08			mov		edx, [ebp+8]									; introduce program & programmer
+ 000000B2  E8 00000000 E		call	WriteString	
+ 000000B7  5A				pop		edx
+ 000000B8  5D				pop		ebp
+ 000000B9  C2 0004			ret		4
+ 000000BC			intro ENDP
+
+
+				;----------------------------------------------------------------------------------
+ 000000BC			getData PROC
+				; Prompts user to enter number of integers, in range [min..max], then validates number
+				; Receives: [ebp+8] = @request, [ebp+12] = @prompt, [ebp+16] = @err_str
+				; Returns: number entered by user in request
+				; Proconditions:none
+				; Registers changed: none
+				;----------------------------------------------------------------------
+ 000000BC  55				push	ebp
+ 000000BD  8B EC			mov		ebp, esp
+ 000000BF  60				pushad
+ 000000C0  8B 7D 08			mov		edi, [ebp+8]								; @request in edi
+					
+ 000000C3			RequestNum:
+ 000000C3  8B 55 0C			mov		edx, [ebp+12]								; edx = @prompt
+ 000000C6  E8 00000000 E		call	WriteString									; tell user to enter a number
+ 000000CB  E8 00000000 E		call	ReadDec										; save number in eax
+					;mov		eax, 4
+
+				; verify: request >= MIN && request <= MAX
+ 000000D0  83 F8 0A			cmp		eax, MIN									
+ 000000D3  7C 09			jl		InvalidRequest								; if request < MIN, reprompt
+ 000000D5  3D 000000C8			cmp		eax, MAX
+ 000000DA  7F 02			jg		InvalidRequest								; if request > MAX, reprompt
+ 000000DC  EB 0F			jmp		ValidRequest								; else, continue
+
+ 000000DE			InvalidRequest:
+ 000000DE  8B 55 10			mov		edx, [ebp+16]								; edx = @err_str
+ 000000E1  E8 00000000 E		call	WriteString
+ 000000E6  E8 00000000 E		call	Crlf
+ 000000EB  EB D6			jmp		RequestNum									; re-prompt
+
+ 000000ED			ValidRequest:
+ 000000ED  89 07			mov		[edi], eax									; store number in request
+
+
+
+
+ 000000EF  61				popad
+ 000000F0  5D				pop		ebp
+ 000000F1  C2 000C			ret		12
+ 000000F4			getData ENDP
+				;----------------------------------------------------------------------
+
+				;----------------------------------------------------------------------
+ 000000F4			DecToASCII PROC
+				; input = 3 digits dec number
+				; buff = 4 byte array of BYTES
+				; uses: eax, ebx, ecx, edx, esi, ebp
+				; reg changed: eax, ebx, edx, esi
+				;----------------------------------------------------------------------
+ 000000F4  55				push	ebp
+ 000000F5  8B EC			mov		ebp, esp
+ 000000F7  60				pushad
+					
+ 000000F8  66| 8B 45 08			mov		ax, [ebp+8]					; ebx = dec num
+ 000000FC  8B 55 0C			mov		edx, [ebp+12]				; @buff in edx
+ 000000FF  B9 00000003			mov		ecx, 3						; loop counter
+ 00000104			L1:
+				; loop sets buff[0], buff[1], buff[2]
+ 00000104  B3 0A			mov		bl, 10						; bl = 10
+ 00000106  F6 F3			div		bl							; AH = digit (7), AL = quotient (65)
+ 00000108  8A DC			mov		bl, ah						; bl = ah = 7
+ 0000010A  80 C3 30			add		bl, 48						; bl = ascii form of digit
+ 0000010D  B4 00			mov		ah, 0						; ax = 65 (for next DIV instruction)
+ 0000010F  88 5C 11 FF			mov		[edx+ecx-1], bl				; buff[ecx] = ascii digit
+ 00000113  E2 EF			loop	L1
+
+				; set buff[3], buff[4]
+ 00000115  B0 0D			mov		al, 13
+ 00000117  88 42 03			mov		[edx+3], al
+ 0000011A  B0 0A			mov		al, 10
+ 0000011C  88 42 04			mov		[edx+4], al
+					
+ 0000011F  61				popad	
+ 00000120  5D				pop		ebp
+ 00000121  C2 0008			ret		8
+ 00000124			DecToASCII ENDP
+				;----------------------------------------------------------------------
+
+				;----------------------------------------------------------------------
+ 00000124			readNums PROC
+				; Description: Read numbers from file into array
+				; Receives: ebp+8 = request, ebp+12 = @fname, ebp+16 = @arr
+				; Returns: arr, with request numbers read from file
+				; Proconditions: numbers are written one per line in file [fname]
+				;				 numbers are all 3 digits (leading zeros if needed)
+				;				 console handle has been initialized
+				; Registers changed: none
+				;----------------------------------------------------------------------
+					LOCAL	pFname:DWORD
+					LOCAL	filehandle: DWORD
+ 0000012A  60				pushad
+ 0000012B  8B 45 0C			mov		eax, [ebp+12]								; @fname
+ 0000012E  89 45 FC			mov		pFname, eax									; @fname
+ 00000131  8B 75 10			mov		esi, [ebp+16]								; @arr
+
+					INVOKE	CreateFile,									; open file [fname] for reading
+						pFname, GENERIC_READ, 
+						DO_NOT_SHARE, NULL,OPEN_EXISTING, 
+						FILE_ATTRIBUTE_NORMAL, 0
+ 0000014E  89 45 F8			mov		filehandle, eax								; store file handle in fhandle
+
+ 00000151  8B 4D 08			mov		ecx, [ebp+8]								; init ecx (loop counter) to request
+ 00000154			L1:														; for i = request, i >0, i--
+ 00000154  60				pushad
+					INVOKE	ReadFile,									; Read number from file into buffer
+						filehandle,										; handle
+						[ebp+20],										; buffer pointer
+						5,												; number of bytes to read
+						NULL,											; num bytes read
+						0												; overlapped execution flag		
+ 00000166  61				popad
+
+ 00000167  8B 7D 14			mov		edi, [ebp+20]								; edi = @buff
+ 0000016A  B8 00000000			mov		eax, 0
+					; get hundreds digit into edx
+ 0000016F  8A 07				mov		al, [edi]
+ 00000171  2C 30				sub		al, 48										; hundreds digit
+ 00000173  B3 64				mov		bl, 100
+ 00000175  F6 E3				mul		bl											; eax = hundreds digit * 100
+ 00000177  8B D0				mov		edx, eax									; store in edx
+ 00000179  47					inc		edi
+					; get tens digit into edx
+ 0000017A  B8 00000000				mov		eax, 0
+ 0000017F  8A 07				mov		al, [edi]		
+ 00000181  2C 30				sub		al, 48										; eax = digit in tens place
+ 00000183  B3 0A				mov		bl, 10	
+ 00000185  F6 E3				mul		bl											; eax = tens digit * 10
+ 00000187  03 D0				add		edx, eax									; add to edx, edx = first two digits
+ 00000189  47					inc		edi
+					; get ones digit into edx
+ 0000018A  8A 07				mov		al, [edi]		
+ 0000018C  2C 30				sub		al, 48										; eax = digit in ones place
+ 0000018E  03 D0				add		edx, eax									; add to edx (edx = all 3 digits)
+					; store in array
+ 00000190  89 16				mov		[esi], edx
+
+ 00000192  83 C6 04				add		esi, 4										; esi points to next array element
+ 00000195  E2 BD			loop	L1											; loop
+
+					INVOKE	CloseHandle, fHandle						;close file handle
+ 000001A2  61				popad
+ 000001A4  C2 0010			ret 16
+ 000001A7			readNums ENDP
+				;----------------------------------------------------------------------
+
+				;----------------------------------------------------------------------
+ 000001A7			writeNums PROC
+				; Description: Generate random numbers and write to file, one number per line
+				; Receives: ebp+8 = request, ebp+12 = @fname, ebp+16 = @fhandle, ebp+20 = @buff
+				; Returns: none
+				; Proconditions: request != null
+				;				 console handle has been initialized
+				; Registers changed: none
+				;----------------------------------------------------------------------
+ 000001A7  55				push	ebp
+ 000001A8  8B EC			mov		ebp, esp
+ 000001AA  83 EC 04			sub		esp, 4								; make space for 1 local var
+ 000001AD  56				push	esi
+ 000001AE  50				push	eax
+ 000001AF  53				push	ebx
+ 000001B0  51				push	ecx
+ 000001B1  52				push	edx
+ 000001B2  8B 75 10			mov		esi, [ebp+16]						; store @fhandle in esi
+ 000001B5  8B 4D 08			mov		ecx, [ebp+8]						; store request in ecx (loop counter)
+					
+					; range = hi - lo + 1
+ 000001B8  B8 000003E7			mov		eax, HI
+ 000001BD  83 E8 64			sub		eax, LO
+ 000001C0  40				inc		eax									; eax = hi - lo + 1
+ 000001C1  89 45 FC		 	mov		local_1, eax						; store "range" in local1
+					
+ 000001C4  51				push	ecx									; save ecx before Win API function
+					INVOKE	CreateFile,							; create/overwite file [fname] for writing
+						[ebp+12], GENERIC_WRITE, 
+						DO_NOT_SHARE, NULL,OPEN_ALWAYS, 
+						FILE_ATTRIBUTE_NORMAL, 0
+ 000001DF  59				pop ecx
+ 000001E0  89 06			mov		[esi], eax							; store file handle in fhandle
+					
+ 000001E2			L1:												; while count < request
+ 000001E2  8B 45 FC			mov		eax, local_1						; eax = range
+ 000001E5  E8 00000000 E		call	RandomRange							; random num in eax
+
+ 000001EA  FF 75 14			push [ebp+20]								; @buff
+ 000001ED  50				push eax									; random number
+ 000001EE  E8 FFFFFF01			call DecToASCII								; convert random num to ascii digits
+
+ 000001F3  51				push	ecx									; save ecx before Win API function
+					INVOKE WriteFile,							; write to file
+						[esi],									; file handle
+						[ebp+20],								; buffer pointer
+						5,										; number of bytes to write
+						NULL,									; num bytes written
+						0										; overlapped execution flag
+ 00000204  59				pop		ecx
+ 00000205  E2 DB			loop	L1									; sub 1 from ecx, or leave if ecx == 0
+ 00000207			LeaveArr:
+					INVOKE	CloseHandle, fHandle
+ 00000212  5A				pop		edx
+ 00000213  59				pop		ecx
+ 00000214  5B				pop		ebx
+ 00000215  58				pop		eax
+ 00000216  5E				pop		esi
+ 00000217  8B E5			mov		esp, ebp							; reset esp, remove local var
+ 00000219  5D				pop		ebp
+ 0000021A  C2 0010			ret		16									; clean up 4 32-bit variables
+ 0000021D			writeNums ENDP
+				;----------------------------------------------------------------------
+
+				;----------------------------------------------------------------------
+ 0000021D			sortList PROC
+				; Description:
+				; Receives: 2 params
+				; Returns:
+				; Proconditions:
+				; Registers changed:
+				;----------------------------------------------------------------------
+ 0000021D  55				push	ebp
+ 0000021E  8B EC			mov		ebp, esp
+ 00000220  56				push	esi
+ 00000221  50				push	eax
+ 00000222  53				push	ebx
+ 00000223  51				push	ecx
+ 00000224  8B FC			mov		edi, esp					; edi points to location before adding array
+
+					;mov		esi, [ebp+12]			; store @arr in esi
+ 00000226  8B 5D 08			mov		ebx, [ebp+8]				; store request in ebx (size)
+ 00000229  8B C3			mov		eax, ebx					; move size to eax
+ 0000022B  B9 00000004			mov		ecx, 4						; move 4 to ecx
+ 00000230  F7 E1			mul		ecx							; multiple array size * 4 to get total size
+ 00000232  83 C0 04			add		eax, 4						; space for 1 more DWORD variable
+ 00000235  2B E0			sub		esp, eax					; make space for array
+					; now edi - 4 is single variable ; edi - eax is start of array
+ 00000237  8B F4			mov		esi, esp					; esi points to start of result array
+
+ 00000239  FF 75 0C			push	[ebp+12]	; @arr
+ 0000023C  6A 00			push	0			; start
+ 0000023E  FF 75 08			push	[ebp+8]		; size
+ 00000241  56				push	esi			; @result
+ 00000242  E8 0000000A			call	merge
+
+ 00000247  8B E7			mov		esp, edi	
+ 00000249  59				pop		ecx
+ 0000024A  5B				pop		ebx
+ 0000024B  58				pop		eax
+ 0000024C  5E				pop		esi
+					;mov		esp, ebp			; reset esp, remove local var
+ 0000024D  5D				pop		ebp
+ 0000024E  C2 0008			ret		8
+ 00000251			sortList ENDP
+				;----------------------------------------------------------------------
+				;----------------------------------------------------------------------
+ 00000251			merge PROC
+				;----------------------------------------------------------------------
+					;push	ebp				; these two lines done by OS
+					;mov	ebp, esp		;
+					LOCAL	left:DWORD
+					LOCAL	right:DWORD
+					LOCAL	i:DWORD
+					LOCAL	len:DWORD
+					LOCAL	dist:DWORD
+					LOCAL	r:DWORD
+					LOCAL	l:DWORD			; l and r are to the positions in the left and right subarrays
+ 00000257  50				push	eax
+ 00000258  53				push	ebx
+ 00000259  57				push	edi
+ 0000025A  51				push	ecx
+ 0000025B  52				push	edx
+ 0000025C  56				push	esi
+
+					; ebp + 8 = @result 
+					; ebp + 12 = right
+					; ebp + 16 = left
+					; ebp + 20 = @arr
+
+ 0000025D  8B 7D 14			mov		edi, [ebp+20]			; store @arr in edi
+ 00000260  8B 75 08			mov		esi, [ebp+8]			; store @result in esi
+ 00000263  8B 45 0C			mov		eax, [ebp+12]
+ 00000266  89 45 F8			mov		right, eax				; store right
+ 00000269  8B 45 10			mov		eax, [ebp+16]
+ 0000026C  89 45 FC			mov		left, eax				; store left 
+ 0000026F  89 45 E4			mov		l, eax					; l = left
+
+				; base case: one element (if r == l+1, return)
+ 00000272  83 C0 01			add		eax, 1				; add 1 to left (in eax)
+ 00000275  3B 45 F8			cmp		eax, right
+ 00000278  0F 84 00000110		je		LeaveProc			; if left+1 = right, exit
+					
+					; else
+					; set len = right - left
+ 0000027E  8B 45 F8			mov		eax, right
+ 00000281  2B 45 FC			sub		eax, left			; right - left in eax
+ 00000284  89 45 F0			mov		len, eax			; length = right - left
+
+					; set dist = right - left / 2
+ 00000287  BB 00000002			mov		ebx, 2				; ebx = 2
+ 0000028C  BA 00000000			mov		edx, 0
+ 00000291  F7 F3			div		ebx					; eax = (right - left) / 2
+ 00000293  89 45 EC			mov		dist, eax			; dist = (right - left) / 2
+
+					; set r = left + mid_distance
+ 00000296  8B 5D FC			mov		ebx, left				; ebx = left
+ 00000299  03 D8			add		ebx, eax				; ebx = left + dist
+ 0000029B  89 5D E8			mov		r, ebx					; r = left + dist 
+
+				; sort each subarray
+					; push parameters for first call
+ 0000029E  FF 75 14			push	[ebp+20]				; @arr
+ 000002A1  FF 75 FC			push	left					; left
+ 000002A4  FF 75 E8			push	r						;left + dist
+ 000002A7  FF 75 08			push	[ebp+8]					; @result
+ 000002AA  E8 FFFFFFA2			call	merge					; recursive call on left subarray (from 0  -> midpoint)
+
+					; push parameters for second call
+ 000002AF  FF 75 14			push	[ebp+20]				; @arr
+ 000002B2  FF 75 E8			push	r						; left + dist
+ 000002B5  FF 75 F8			push	right					; right
+ 000002B8  FF 75 08			push	[ebp+8]					; @result
+ 000002BB  E8 FFFFFF91			call	merge					; recursive call on right subarray (from midpoint -> max)
+
+
+				; merge arrays together
+					; Check to see if any elements remain in the left array; 
+					; if so, we check if there are any elements left in the right array; 
+					; if so, we compare them.  
+					; Otherwise, we know that the merge must use take the element from the left array
+					
+ 000002C0  C7 45 F4			mov		i, 0								; i = 0
+	   00000000
+ 000002C7				BeginFor:
+					;-------------------------------------------
+					; for(i = 0; i < len; i++)
+ 000002C7  8B 5D F4				mov ebx, i
+ 000002CA  8B 45 F0				mov		eax, len
+ 000002CD  39 45 F4				cmp		i, eax								; compare i to len
+ 000002D0  7D 7C				jge		LeaveFor							; if i >= len, exit for-loop
+
+						;if (l < left + dist) AND (r == right || max(arr[l], arr[r]) == arr[l])
+							; if l >= r
+ 000002D2  8B 45 FC					mov		eax, left
+ 000002D5  03 45 EC					add		eax, dist						; eax = left + dist
+ 000002D8  39 45 E4					cmp		l, eax							; compare l to left+dist
+ 000002DB  7D 4C					jge		FromRight
+
+							; if here, first part is true, now check second part
+							; (r == right || max(arr[l], arr[r]) == arr[l])
+							; if either one is true, whole thing is true, and go to FromLeft
+							; (r == right)
+							; edi ->arr
+							; esi ->result
+
+							; check: (max(arr[l], arr[r]) == arr[l])
+								; find max(arr[l], arr[r])
+ 000002DD  8B 45 E4						mov		eax, l
+ 000002E0  BB 00000004						mov		ebx, 4
+ 000002E5  F7 E3						mul		ebx
+ 000002E7  8B C8						mov		ecx, eax								; ecx = l * 4
+ 000002E9  8B 45 E8						mov		eax, r
+ 000002EC  F7 E3						mul		ebx
+ 000002EE  8B D0						mov		edx, eax								; edx = r * 4
+
+ 000002F0  8B 04 39						mov		eax, [edi+ecx]							; arr[l] in eax
+ 000002F3  8B 1C 3A						mov		ebx, [edi+edx]							; arr[r] in ebx
+ 000002F6  3B C3						cmp		eax, ebx
+ 000002F8  7D 03						jge		LeftMax									; if left >= right
+ 000002FA							RightMax:										; arr[r] > arr[l]
+ 000002FA  8B 04 3A							mov		eax, [edi+edx]
+ 000002FD							LeftMax:										;arr[l] >= arr[r]
+																				; eax = max already																
+								; is max == arr[l]?
+ 000002FD  3B 04 39						cmp		eax, [edi+ecx]
+ 00000300  74 0C						je		FromLeft								; if true, FromLeft
+																				; else check second condition
+
+							; check: r == right
+ 00000302  8B 45 E8						mov		eax, r
+ 00000305  8B 5D F8						mov		ebx, right
+ 00000308  3B C3						cmp		eax, ebx
+ 0000030A  74 02						je		FromLeft
+								; if this isnt true, then second condition is false, so whole condition is false
+								; go to FromRight
+ 0000030C  EB 1B						jmp		FromRight
+
+ 0000030E					FromLeft:
+								;result[i] = arr[l];
+ 0000030E  8B 45 E4						mov		eax, l
+ 00000311  BB 00000004						mov		ebx, 4
+ 00000316  F7 E3						mul		ebx										; eax = l * 4
+ 00000318  8B 0C 38						mov		ecx, [edi+eax]							; move arr[l] to ecx
+
+ 0000031B  8B 45 F4						mov		eax, i
+ 0000031E  F7 E3						mul		ebx										; eax = i * 4
+ 00000320  89 0C 30						mov		[esi+eax], ecx							; result[i] = arr[l]
+								;l++;
+ 00000323  83 45 E4 01						add		l, 1
+ 00000327  EB 1C						jmp		ContinueFor
+
+							;else
+ 00000329					FromRight:
+								;result[i] = arr[r];
+ 00000329  8B 45 E8						mov		eax, r
+ 0000032C  BB 00000004						mov		ebx, 4
+ 00000331  F7 E3						mul		ebx										; eax = r * 4
+ 00000333  8B 0C 38						mov		ecx, [edi+eax]							; move arr[r] to ecx
+
+ 00000336  8B 45 F4						mov		eax, i
+ 00000339  F7 E3						mul		ebx										; eax = i * 4
+ 0000033B  89 0C 30						mov		[esi+eax], ecx							; result[i] = arr[r]
+ 0000033E  8B 1C 30						mov		ebx, [esi+eax]
+
+								;r++;
+ 00000341  83 45 E8 01						add		r, 1
+
+ 00000345				ContinueFor:
+ 00000345  83 45 F4 01				add		i, 1
+ 00000349  E9 FFFFFF79				jmp		BeginFor
+					; end for-loop
+					;-------------------------------------------
+ 0000034E				LeaveFor:
+					
+ 0000034E  8B 45 FC				mov		eax, left
+ 00000351  89 45 F4				mov		i, eax				; i = left
+ 00000354  A3 000004AC R			mov		lf, eax
+ 00000359  8B 5D F8				mov		ebx, right
+ 0000035C  89 1D 000004B0 R			mov		rt, ebx
+ 00000362  8B 06				mov eax, [esi]
+ 00000364				For2:
+					;-------------------------------------------
+					; Copy the sorted subarray back to the input
+					; for(i = left; i < right; i++) 
+ 00000364  8B 45 F4				mov		eax, i
+ 00000367  3B 45 F8				cmp		eax, right
+ 0000036A  7D 22				jge		Leave2			; if i >= right, leave loop
+
+						; arr[i] = result[i - left];
+ 0000036C  8B 45 F4						mov		eax, i
+ 0000036F  2B 45 FC						sub		eax, left					; eax = i - left
+ 00000372  BB 00000004						mov		ebx, 4
+ 00000377  F7 E3						mul		ebx							; eax = 4 * (i - left)
+ 00000379  8B C8						mov		ecx, eax					; ecx = 4 * (i - left)
+ 0000037B  8B 45 F4						mov		eax, i
+ 0000037E  F7 E3						mul		ebx							; eax = 4 * i
+ 00000380  8B D0						mov		edx, eax					; edx = 4 * i
+												
+ 00000382  8B 04 31						mov		eax, [esi+ecx]				;eax = result[i - left]
+ 00000385  89 04 3A						mov		[edi+edx], eax				;arr[i] = result[i - left]	
+									
+ 00000388  83 45 F4 01				add		i, 1
+ 0000038C  EB D6				jmp		For2
+					;-------------------------------------------
+ 0000038E				Leave2:
+
+ 0000038E			LeaveProc:
+ 0000038E  5E				pop		esi
+ 0000038F  5A				pop		edx
+ 00000390  59				pop		ecx
+ 00000391  5F				pop		edi
+ 00000392  5B				pop		ebx
+ 00000393  58				pop		eax
+ 00000395  C2 0010			ret		16					; remove 4 parameters from stack
+ 00000398			merge ENDP
+				;----------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+				;----------------------------------------------------------------------
+ 00000398			displayMed PROC
+				; Description:
+				; Receives:
+				; Returns:
+				; Proconditions:
+				; Registers changed:
+				;----------------------------------------------------------------------
+ 00000398  C3				ret
+ 00000399			displayMed ENDP
+				;----------------------------------------------------------------------
+
+				;----------------------------------------------------------------------
+ 00000399			displayList PROC
+				; Description:
+				; Receives:
+				; Returns:
+				; Proconditions:
+				; Registers changed:
+				;----------------------------------------------------------------------
+ 00000399  55				push	ebp
+ 0000039A  8B EC			mov		ebp, esp
+ 0000039C  83 EC 0C			sub		esp, 12				; make space for local vars
+ 0000039F  56				push	esi
+ 000003A0  50				push	eax
+ 000003A1  53				push	ebx
+ 000003A2  51				push	ecx
+ 000003A3  52				push	edx
+ 000003A4  8B 55 10			mov		edx, [ebp+16]			; store @title in edx
+ 000003A7  8B 75 0C			mov		esi, [ebp+12]			; store @arr in esi
+ 000003AA  8B 5D 08			mov		ebx, [ebp+8]			; store request in ebx
+ 000003AD  C7 45 FC			mov		local_1, 1				; "columnCount", initialized to 1
+	   00000001
+ 000003B4  E8 00000000 E		call	Crlf
+ 000003B9  E8 00000000 E		call	Crlf
+ 000003BE  E8 00000000 E		call	WriteString				; print title
+ 000003C3  E8 00000000 E		call	Crlf
+
+ 000003C8  C7 45 F8			mov		local_2, 00202020h		; move 3 spaces to local_2
+	   00202020
+ 000003CF  C7 45 F4			mov		local_3, 1				; "columnCount" in local_3
+	   00000001
+ 000003D6  B9 00000000			mov		ecx, 0					; set "count" to 0 in ecx
+ 000003DB			L1:	
+ 000003DB  3B CB			cmp		ecx, ebx				; while count < request
+ 000003DD  7D 2F			jge		LeaveArr
+ 000003DF  83 7D F4 0A			cmp		local_3, 10				; check colCount to see if new line needed
+ 000003E3  7E 0C			jle		SameLine				; if colCount > 10, new line
+ 000003E5  C7 45 F4			mov		local_3, 1				; reset colCount to 1
+	   00000001
+ 000003EC  E8 00000000 E		call	Crlf					; move to new line
+ 000003F1			SameLine:
+ 000003F1  8B 06			mov		eax, [esi]				; arr[count]
+ 000003F3  E8 00000000 E		call	WriteDec
+ 000003F8  8B D5			mov		edx, ebp
+ 000003FA  83 EA 08			sub		edx, 8					; move address of local variable to edx
+ 000003FD  E8 00000000 E		call	WriteString	
+ 00000402  83 C6 04			add		esi, 4					; esi points to next index
+ 00000405  83 C1 01			add		ecx, 1					; increment index number
+ 00000408  83 45 F4 01			add		local_3, 1
+ 0000040C  EB CD			jmp		L1						; loop
+ 0000040E			LeaveArr:
+ 0000040E  E8 00000000 E		call	Crlf
+ 00000413  5A				pop		edx
+ 00000414  59				pop		ecx
+ 00000415  5B				pop		ebx
+ 00000416  58				pop		eax
+ 00000417  5E				pop		esi
+ 00000418  8B E5			mov		esp, ebp			; reset esp, remove local var
+ 0000041A  5D				pop		ebp
+ 0000041B  C2 000C			ret		12
+ 0000041E			displayList ENDP
+				;----------------------------------------------------------------------
+
+
+				END main
+Microsoft (R) Macro Assembler Version 11.00.50727.1	    03/02/13 12:37:20
+ Prime Numbers       (Prog05.asm			     Symbols 2 - 1
+
+
+
+
+Structures and Unions:
+
+                N a m e                  Size
+                                         Offset      Type
+
+CONSOLE_CURSOR_INFO  . . . . . .	 00000008
+  dwSize . . . . . . . . . . . .	 00000000	 DWord
+  bVisible . . . . . . . . . . .	 00000004	 DWord
+CONSOLE_SCREEN_BUFFER_INFO . . .	 00000016
+  dwSize . . . . . . . . . . . .	 00000000	 DWord
+  dwCursorPosition . . . . . . .	 00000004	 DWord
+  wAttributes  . . . . . . . . .	 00000008	 Word
+  srWindow . . . . . . . . . . .	 0000000A	 QWord
+  dwMaximumWindowSize  . . . . .	 00000012	 DWord
+COORD  . . . . . . . . . . . . .	 00000004
+  X  . . . . . . . . . . . . . .	 00000000	 Word
+  Y  . . . . . . . . . . . . . .	 00000002	 Word
+FILETIME . . . . . . . . . . . .	 00000008
+  loDateTime . . . . . . . . . .	 00000000	 DWord
+  hiDateTime . . . . . . . . . .	 00000004	 DWord
+FOCUS_EVENT_RECORD . . . . . . .	 00000004
+  bSetFocus  . . . . . . . . . .	 00000000	 DWord
+FPU_ENVIRON  . . . . . . . . . .	 0000001C
+  controlWord  . . . . . . . . .	 00000000	 Word
+  statusWord . . . . . . . . . .	 00000004	 Word
+  tagWord  . . . . . . . . . . .	 00000008	 Word
+  instrPointerOffset . . . . . .	 0000000C	 DWord
+  instrPointerSelector . . . . .	 00000010	 DWord
+  operandPointerOffset . . . . .	 00000014	 DWord
+  operandPointerSelector . . . .	 00000018	 Word
+INPUT_RECORD . . . . . . . . . .	 00000014
+  EventType  . . . . . . . . . .	 00000000	 Word
+  Event  . . . . . . . . . . . .	 00000004	 XmmWord
+  bKeyDown . . . . . . . . . . .	 00000000	 DWord
+  wRepeatCount . . . . . . . . .	 00000004	 Word
+  wVirtualKeyCode  . . . . . . .	 00000006	 Word
+  wVirtualScanCode . . . . . . .	 00000008	 Word
+  uChar  . . . . . . . . . . . .	 0000000A	 Word
+  UnicodeChar  . . . . . . . . .	 00000000	 Word
+  AsciiChar  . . . . . . . . . .	 00000000	 Byte
+  dwControlKeyState  . . . . . .	 0000000C	 DWord
+  dwMousePosition  . . . . . . .	 00000000	 DWord
+  dwButtonState  . . . . . . . .	 00000004	 DWord
+  dwMouseControlKeyState . . . .	 00000008	 DWord
+  dwEventFlags . . . . . . . . .	 0000000C	 DWord
+  dwSize . . . . . . . . . . . .	 00000000	 DWord
+  dwCommandId  . . . . . . . . .	 00000000	 DWord
+  bSetFocus  . . . . . . . . . .	 00000000	 DWord
+KEY_EVENT_RECORD . . . . . . . .	 00000010
+  bKeyDown . . . . . . . . . . .	 00000000	 DWord
+  wRepeatCount . . . . . . . . .	 00000004	 Word
+  wVirtualKeyCode  . . . . . . .	 00000006	 Word
+  wVirtualScanCode . . . . . . .	 00000008	 Word
+  uChar  . . . . . . . . . . . .	 0000000A	 Word
+  UnicodeChar  . . . . . . . . .	 00000000	 Word
+  AsciiChar  . . . . . . . . . .	 00000000	 Byte
+  dwControlKeyState  . . . . . .	 0000000C	 DWord
+MENU_EVENT_RECORD  . . . . . . .	 00000004
+  dwCommandId  . . . . . . . . .	 00000000	 DWord
+MOUSE_EVENT_RECORD . . . . . . .	 00000010
+  dwMousePosition  . . . . . . .	 00000000	 DWord
+  dwButtonState  . . . . . . . .	 00000004	 DWord
+  dwMouseControlKeyState . . . .	 00000008	 DWord
+  dwEventFlags . . . . . . . . .	 0000000C	 DWord
+SMALL_RECT . . . . . . . . . . .	 00000008
+  Left . . . . . . . . . . . . .	 00000000	 Word
+  Top  . . . . . . . . . . . . .	 00000002	 Word
+  Right  . . . . . . . . . . . .	 00000004	 Word
+  Bottom . . . . . . . . . . . .	 00000006	 Word
+SYSTEMTIME . . . . . . . . . . .	 00000010
+  wYear  . . . . . . . . . . . .	 00000000	 Word
+  wMonth . . . . . . . . . . . .	 00000002	 Word
+  wDayOfWeek . . . . . . . . . .	 00000004	 Word
+  wDay . . . . . . . . . . . . .	 00000006	 Word
+  wHour  . . . . . . . . . . . .	 00000008	 Word
+  wMinute  . . . . . . . . . . .	 0000000A	 Word
+  wSecond  . . . . . . . . . . .	 0000000C	 Word
+  wMilliseconds  . . . . . . . .	 0000000E	 Word
+WINDOW_BUFFER_SIZE_RECORD  . . .	 00000004
+  dwSize . . . . . . . . . . . .	 00000000	 DWord
+
+
+Segments and Groups:
+
+                N a m e                 Size     Length   Align   Combine Class
+
+FLAT . . . . . . . . . . . . . .	GROUP
+STACK  . . . . . . . . . . . . .	32 Bit	 00001000 Para	  Stack	  'STACK'	 
+_DATA  . . . . . . . . . . . . .	32 Bit	 000004E3 Para	  Public  'DATA'	
+_TEXT  . . . . . . . . . . . . .	32 Bit	 0000041E Para	  Public  'CODE'	
+
+
+Procedures, parameters, and locals:
+
+                N a m e                 Type     Value    Attr
+
+CloseFile  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+CloseHandle  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Clrscr . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+CreateFileA  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+CreateOutputFile . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Crlf . . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+DecToASCII . . . . . . . . . . .	P Near	 000000F4 _TEXT	Length= 00000030 Public STDCALL
+  L1 . . . . . . . . . . . . . .	L Near	 00000104 _TEXT	
+Delay  . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+DumpMem  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+DumpRegs . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ExitProcess  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+FileTimeToDosDateTime  . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+FileTimeToSystemTime . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+FlushConsoleInputBuffer  . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+FormatMessageA . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetCommandLineA  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetCommandTail . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetConsoleCP . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetConsoleCursorInfo . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetConsoleMode . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetConsoleScreenBufferInfo . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetDateTime  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetFileTime  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetKeyState  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetLastError . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetLocalTime . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetMaxXY . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetMseconds  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetNumberOfConsoleInputEvents  .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetProcessHeap . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetStdHandle . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetSystemTime  . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetTextColor . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetTickCount . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Gotoxy . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+HeapAlloc  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+HeapCreate . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+HeapDestroy  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+HeapFree . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+HeapSize . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+IsDigit  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+LocalFree  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+MessageBoxA  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+MsgBoxAsk  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+MsgBox . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+OpenInputFile  . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ParseDecimal32 . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ParseInteger32 . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+PeekConsoleInputA  . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Random32 . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+RandomRange  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Randomize  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadChar . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadConsoleA . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadConsoleInputA  . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadDec  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadFile . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadFloat  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadFromFile . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadHex  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadInt  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadKeyFlush . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadKey  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadString . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetConsoleCursorInfo . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetConsoleCursorPosition . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetConsoleMode . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetConsoleScreenBufferSize . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetConsoleTextAttribute  . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetConsoleTitleA . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetConsoleWindowInfo . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetFilePointer . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetLocalTime . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetTextColor . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ShowFPUStack . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Sleep  . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+StrLength  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Str_compare  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Str_copy . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Str_length . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Str_trim . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Str_ucase  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SystemTimeToFileTime . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WaitMsg  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteBinB  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteBin . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteChar  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteConsoleA  . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteConsoleOutputAttribute  . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteConsoleOutputCharacterA . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteDec . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteFile  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteFloat . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteHexB  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteHex . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteInt . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteStackFrameName  . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteStackFrame  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteString  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteToFile  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteWindowsMsg  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+displayList  . . . . . . . . . .	P Near	 00000399 _TEXT	Length= 00000085 Public STDCALL
+  L1 . . . . . . . . . . . . . .	L Near	 000003DB _TEXT	
+  SameLine . . . . . . . . . . .	L Near	 000003F1 _TEXT	
+  LeaveArr . . . . . . . . . . .	L Near	 0000040E _TEXT	
+displayMed . . . . . . . . . . .	P Near	 00000398 _TEXT	Length= 00000001 Public STDCALL
+getData  . . . . . . . . . . . .	P Near	 000000BC _TEXT	Length= 00000038 Public STDCALL
+  RequestNum . . . . . . . . . .	L Near	 000000C3 _TEXT	
+  InvalidRequest . . . . . . . .	L Near	 000000DE _TEXT	
+  ValidRequest . . . . . . . . .	L Near	 000000ED _TEXT	
+intro  . . . . . . . . . . . . .	P Near	 000000AB _TEXT	Length= 00000011 Public STDCALL
+main . . . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 000000AB Public STDCALL
+merge  . . . . . . . . . . . . .	P Near	 00000251 _TEXT	Length= 00000147 Public STDCALL
+  left . . . . . . . . . . . . .	DWord	 bp - 00000004
+  right  . . . . . . . . . . . .	DWord	 bp - 00000008
+  i  . . . . . . . . . . . . . .	DWord	 bp - 0000000C
+  len  . . . . . . . . . . . . .	DWord	 bp - 00000010
+  dist . . . . . . . . . . . . .	DWord	 bp - 00000014
+  r  . . . . . . . . . . . . . .	DWord	 bp - 00000018
+  l  . . . . . . . . . . . . . .	DWord	 bp - 0000001C
+  BeginFor . . . . . . . . . . .	L Near	 000002C7 _TEXT	
+  RightMax . . . . . . . . . . .	L Near	 000002FA _TEXT	
+  LeftMax  . . . . . . . . . . .	L Near	 000002FD _TEXT	
+  FromLeft . . . . . . . . . . .	L Near	 0000030E _TEXT	
+  FromRight  . . . . . . . . . .	L Near	 00000329 _TEXT	
+  ContinueFor  . . . . . . . . .	L Near	 00000345 _TEXT	
+  LeaveFor . . . . . . . . . . .	L Near	 0000034E _TEXT	
+  For2 . . . . . . . . . . . . .	L Near	 00000364 _TEXT	
+  Leave2 . . . . . . . . . . . .	L Near	 0000038E _TEXT	
+  LeaveProc  . . . . . . . . . .	L Near	 0000038E _TEXT	
+printf . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
+readNums . . . . . . . . . . . .	P Near	 00000124 _TEXT	Length= 00000083 Public STDCALL
+  pFname . . . . . . . . . . . .	DWord	 bp - 00000004
+  filehandle . . . . . . . . . .	DWord	 bp - 00000008
+  L1 . . . . . . . . . . . . . .	L Near	 00000154 _TEXT	
+scanf  . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
+sortList . . . . . . . . . . . .	P Near	 0000021D _TEXT	Length= 00000034 Public STDCALL
+writeNums  . . . . . . . . . . .	P Near	 000001A7 _TEXT	Length= 00000076 Public STDCALL
+  L1 . . . . . . . . . . . . . .	L Near	 000001E2 _TEXT	
+  LeaveArr . . . . . . . . . . .	L Near	 00000207 _TEXT	
+wsprintfA  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
+
+
+Symbols:
+
+                N a m e                 Type     Value    Attr
+
+@CodeSize  . . . . . . . . . . .	Number	 00000000h   
+@DataSize  . . . . . . . . . . .	Number	 00000000h   
+@Interface . . . . . . . . . . .	Number	 00000003h   
+@Model . . . . . . . . . . . . .	Number	 00000007h   
+@code  . . . . . . . . . . . . .	Text   	 _TEXT
+@data  . . . . . . . . . . . . .	Text   	 FLAT
+@fardata?  . . . . . . . . . . .	Text   	 FLAT
+@fardata . . . . . . . . . . . .	Text   	 FLAT
+@stack . . . . . . . . . . . . .	Text   	 FLAT
+ALT_MASK . . . . . . . . . . . .	Number	 00000003h   
+CAPSLOCK_ON  . . . . . . . . . .	Number	 00000080h   
+CREATE_ALWAYS  . . . . . . . . .	Number	 00000002h   
+CREATE_NEW . . . . . . . . . . .	Number	 00000001h   
+CTRL_MASK  . . . . . . . . . . .	Number	 0000000Ch   
+CreateFile . . . . . . . . . . .	Text   	 CreateFileA
+DO_NOT_SHARE . . . . . . . . . .	Number	 00000000h   
+ENABLE_ECHO_INPUT  . . . . . . .	Number	 00000004h   
+ENABLE_LINE_INPUT  . . . . . . .	Number	 00000002h   
+ENABLE_MOUSE_INPUT . . . . . . .	Number	 00000010h   
+ENABLE_PROCESSED_INPUT . . . . .	Number	 00000001h   
+ENABLE_PROCESSED_OUTPUT  . . . .	Number	 00000001h   
+ENABLE_WINDOW_INPUT  . . . . . .	Number	 00000008h   
+ENABLE_WRAP_AT_EOL_OUTPUT  . . .	Number	 00000002h   
+ENHANCED_KEY . . . . . . . . . .	Number	 00000100h   
+FALSE  . . . . . . . . . . . . .	Number	 00000000h   
+FILE_APPEND_DATA . . . . . . . .	Number	 00000004h   
+FILE_ATTRIBUTE_ARCHIVE . . . . .	Number	 00000020h   
+FILE_ATTRIBUTE_COMPRESSED  . . .	Number	 00000800h   
+FILE_ATTRIBUTE_DEVICE  . . . . .	Number	 00000040h   
+FILE_ATTRIBUTE_DIRECTORY . . . .	Number	 00000010h   
+FILE_ATTRIBUTE_ENCRYPTED . . . .	Number	 00004000h   
+FILE_ATTRIBUTE_HIDDEN  . . . . .	Number	 00000002h   
+FILE_ATTRIBUTE_NORMAL  . . . . .	Number	 00000080h   
+FILE_ATTRIBUTE_NOT_CONTENT_INDEXED .	Number	 00002000h   
+FILE_ATTRIBUTE_OFFLINE . . . . .	Number	 00001000h   
+FILE_ATTRIBUTE_READONLY  . . . .	Number	 00000001h   
+FILE_ATTRIBUTE_REPARSE_POINT . .	Number	 00000400h   
+FILE_ATTRIBUTE_SPARSE_FILE . . .	Number	 00000200h   
+FILE_ATTRIBUTE_SYSTEM  . . . . .	Number	 00000004h   
+FILE_ATTRIBUTE_TEMPORARY . . . .	Number	 00000100h   
+FILE_BEGIN . . . . . . . . . . .	Number	 00000000h   
+FILE_CURRENT . . . . . . . . . .	Number	 00000001h   
+FILE_DELETE_CHILD  . . . . . . .	Number	 00000040h   
+FILE_END . . . . . . . . . . . .	Number	 00000002h   
+FILE_READ_DATA . . . . . . . . .	Number	 00000001h   
+FILE_SHARE_DELETE  . . . . . . .	Number	 00000004h   
+FILE_SHARE_READ  . . . . . . . .	Number	 00000001h   
+FILE_SHARE_WRITE . . . . . . . .	Number	 00000002h   
+FILE_WRITE_DATA  . . . . . . . .	Number	 00000002h   
+FOCUS_EVENT  . . . . . . . . . .	Number	 00000010h   
+FORMAT_MESSAGE_ALLOCATE_BUFFER .	Number	 00000100h   
+FORMAT_MESSAGE_FROM_SYSTEM . . .	Number	 00001000h   
+FormatMessage  . . . . . . . . .	Text   	 FormatMessageA
+GENERIC_ALL  . . . . . . . . . .	Number	 10000000h   
+GENERIC_EXECUTE  . . . . . . . .	Number	 20000000h   
+GENERIC_READ . . . . . . . . . .	Number	 -80000000h   
+GENERIC_WRITE  . . . . . . . . .	Number	 40000000h   
+GetCommandLine . . . . . . . . .	Text   	 GetCommandLineA
+HANDLE . . . . . . . . . . . . .	Text   	 DWORD
+HEAP_GENERATE_EXCEPTIONS . . . .	Number	 00000004h   
+HEAP_GROWABLE  . . . . . . . . .	Number	 00000002h   
+HEAP_NO_SERIALIZE  . . . . . . .	Number	 00000001h   
+HEAP_REALLOC_IN_PLACE_ONLY . . .	Number	 00000010h   
+HEAP_ZERO_MEMORY . . . . . . . .	Number	 00000008h   
+HI . . . . . . . . . . . . . . .	Number	 000003E7h   
+IDABORT  . . . . . . . . . . . .	Number	 00000003h   
+IDCANCEL . . . . . . . . . . . .	Number	 00000002h   
+IDCLOSE  . . . . . . . . . . . .	Number	 00000008h   
+IDCONTINUE . . . . . . . . . . .	Number	 0000000Bh   
+IDHELP . . . . . . . . . . . . .	Number	 00000009h   
+IDIGNORE . . . . . . . . . . . .	Number	 00000005h   
+IDNO . . . . . . . . . . . . . .	Number	 00000007h   
+IDOK . . . . . . . . . . . . . .	Number	 00000001h   
+IDRETRY  . . . . . . . . . . . .	Number	 00000004h   
+IDTIMEOUT  . . . . . . . . . . .	Number	 00007D00h   
+IDTRYAGAIN . . . . . . . . . . .	Number	 0000000Ah   
+IDYES  . . . . . . . . . . . . .	Number	 00000006h   
+INVALID_HANDLE_VALUE . . . . . .	Number	 -00000001h   
+KBDOWN_FLAG  . . . . . . . . . .	Number	 00000001h   
+KEY_EVENT  . . . . . . . . . . .	Number	 00000001h   
+KEY_MASKS  . . . . . . . . . . .	Number	 0000001Fh   
+LEFT_ALT_PRESSED . . . . . . . .	Number	 00000002h   
+LEFT_CTRL_PRESSED  . . . . . . .	Number	 00000008h   
+LO . . . . . . . . . . . . . . .	Number	 00000064h   
+MAX  . . . . . . . . . . . . . .	Number	 000000C8h   
+MB_ABORTRETRYIGNORE  . . . . . .	Number	 00000002h   
+MB_APPLMODAL . . . . . . . . . .	Number	 00000000h   
+MB_CANCELTRYCONTINUE . . . . . .	Number	 00000006h   
+MB_DEFBUTTON1  . . . . . . . . .	Number	 00000000h   
+MB_DEFBUTTON2  . . . . . . . . .	Number	 00000100h   
+MB_DEFBUTTON3  . . . . . . . . .	Number	 00000200h   
+MB_DEFBUTTON4  . . . . . . . . .	Number	 00000300h   
+MB_HELP  . . . . . . . . . . . .	Number	 00004000h   
+MB_ICONASTERISK  . . . . . . . .	Number	 00000040h   
+MB_ICONERROR . . . . . . . . . .	Number	 00000010h   
+MB_ICONEXCLAMATION . . . . . . .	Number	 00000030h   
+MB_ICONHAND  . . . . . . . . . .	Number	 00000010h   
+MB_ICONINFORMATION . . . . . . .	Number	 00000040h   
+MB_ICONQUESTION  . . . . . . . .	Number	 00000020h   
+MB_ICONSTOP  . . . . . . . . . .	Number	 00000010h   
+MB_ICONWARNING . . . . . . . . .	Number	 00000030h   
+MB_OKCANCEL  . . . . . . . . . .	Number	 00000001h   
+MB_OK  . . . . . . . . . . . . .	Number	 00000000h   
+MB_RETRYCANCEL . . . . . . . . .	Number	 00000005h   
+MB_SYSTEMMODAL . . . . . . . . .	Number	 00001000h   
+MB_TASKMODAL . . . . . . . . . .	Number	 00002000h   
+MB_USERICON  . . . . . . . . . .	Number	 00000080h   
+MB_YESNOCANCEL . . . . . . . . .	Number	 00000003h   
+MB_YESNO . . . . . . . . . . . .	Number	 00000004h   
+MENU_EVENT . . . . . . . . . . .	Number	 00000008h   
+MIN  . . . . . . . . . . . . . .	Number	 0000000Ah   
+MOUSE_EVENT  . . . . . . . . . .	Number	 00000002h   
+MessageBox . . . . . . . . . . .	Text   	 MessageBoxA
+NULL . . . . . . . . . . . . . .	Number	 00000000h   
+NUMLOCK_ON . . . . . . . . . . .	Number	 00000020h   
+OPEN_ALWAYS  . . . . . . . . . .	Number	 00000004h   
+OPEN_EXISTING  . . . . . . . . .	Number	 00000003h   
+PeekConsoleInput . . . . . . . .	Text   	 PeekConsoleInputA
+RIGHT_ALT_PRESSED  . . . . . . .	Number	 00000001h   
+RIGHT_CTRL_PRESSED . . . . . . .	Number	 00000004h   
+ReadConsoleInput . . . . . . . .	Text   	 ReadConsoleInputA
+ReadConsole  . . . . . . . . . .	Text   	 ReadConsoleA
+SCROLLLOCK_ON  . . . . . . . . .	Number	 00000040h   
+SHIFT_MASK . . . . . . . . . . .	Number	 00000010h   
+SHIFT_PRESSED  . . . . . . . . .	Number	 00000010h   
+SIZE_SORT  . . . . . . . . . . .	Number	 00000011h   
+SIZE_UN  . . . . . . . . . . . .	Number	 0000001Dh   
+STD_ERROR_HANDLE . . . . . . . .	Number	 -0000000Ch   
+STD_INPUT_HANDLE . . . . . . . .	Number	 -0000000Ah   
+STD_OUTPUT_HANDLE  . . . . . . .	Number	 -0000000Bh   
+SetConsoleTitle  . . . . . . . .	Text   	 SetConsoleTitleA
+TAB  . . . . . . . . . . . . . .	Number	 00000009h   
+TRUE . . . . . . . . . . . . . .	Number	 00000001h   
+TRUNCATE_EXISTING  . . . . . . .	Number	 00000005h   
+VK_11  . . . . . . . . . . . . .	Number	 000000BDh   
+VK_12  . . . . . . . . . . . . .	Number	 000000BBh   
+VK_ADD . . . . . . . . . . . . .	Number	 0000006Bh   
+VK_BACK  . . . . . . . . . . . .	Number	 00000008h   
+VK_CANCEL  . . . . . . . . . . .	Number	 00000003h   
+VK_CAPITAL . . . . . . . . . . .	Number	 00000014h   
+VK_CLEAR . . . . . . . . . . . .	Number	 0000000Ch   
+VK_CONTROL . . . . . . . . . . .	Number	 00000011h   
+VK_DECIMAL . . . . . . . . . . .	Number	 0000006Eh   
+VK_DELETE  . . . . . . . . . . .	Number	 0000002Eh   
+VK_DIVIDE  . . . . . . . . . . .	Number	 0000006Fh   
+VK_DOWN  . . . . . . . . . . . .	Number	 00000028h   
+VK_END . . . . . . . . . . . . .	Number	 00000023h   
+VK_ESCAPE  . . . . . . . . . . .	Number	 0000001Bh   
+VK_EXECUTE . . . . . . . . . . .	Number	 0000002Bh   
+VK_F10 . . . . . . . . . . . . .	Number	 00000079h   
+VK_F11 . . . . . . . . . . . . .	Number	 0000007Ah   
+VK_F12 . . . . . . . . . . . . .	Number	 0000007Bh   
+VK_F13 . . . . . . . . . . . . .	Number	 0000007Ch   
+VK_F14 . . . . . . . . . . . . .	Number	 0000007Dh   
+VK_F15 . . . . . . . . . . . . .	Number	 0000007Eh   
+VK_F16 . . . . . . . . . . . . .	Number	 0000007Fh   
+VK_F17 . . . . . . . . . . . . .	Number	 00000080h   
+VK_F18 . . . . . . . . . . . . .	Number	 00000081h   
+VK_F19 . . . . . . . . . . . . .	Number	 00000082h   
+VK_F1  . . . . . . . . . . . . .	Number	 00000070h   
+VK_F20 . . . . . . . . . . . . .	Number	 00000083h   
+VK_F21 . . . . . . . . . . . . .	Number	 00000084h   
+VK_F22 . . . . . . . . . . . . .	Number	 00000085h   
+VK_F23 . . . . . . . . . . . . .	Number	 00000086h   
+VK_F24 . . . . . . . . . . . . .	Number	 00000087h   
+VK_F2  . . . . . . . . . . . . .	Number	 00000071h   
+VK_F3  . . . . . . . . . . . . .	Number	 00000072h   
+VK_F4  . . . . . . . . . . . . .	Number	 00000073h   
+VK_F5  . . . . . . . . . . . . .	Number	 00000074h   
+VK_F6  . . . . . . . . . . . . .	Number	 00000075h   
+VK_F7  . . . . . . . . . . . . .	Number	 00000076h   
+VK_F8  . . . . . . . . . . . . .	Number	 00000077h   
+VK_F9  . . . . . . . . . . . . .	Number	 00000078h   
+VK_HELP  . . . . . . . . . . . .	Number	 0000002Fh   
+VK_HOME  . . . . . . . . . . . .	Number	 00000024h   
+VK_INSERT  . . . . . . . . . . .	Number	 0000002Dh   
+VK_LBUTTON . . . . . . . . . . .	Number	 00000001h   
+VK_LCONTROL  . . . . . . . . . .	Number	 000000A2h   
+VK_LEFT  . . . . . . . . . . . .	Number	 00000025h   
+VK_LMENU . . . . . . . . . . . .	Number	 000000A4h   
+VK_LSHIFT  . . . . . . . . . . .	Number	 000000A0h   
+VK_MENU  . . . . . . . . . . . .	Number	 00000012h   
+VK_MULTIPLY  . . . . . . . . . .	Number	 0000006Ah   
+VK_NEXT  . . . . . . . . . . . .	Number	 00000022h   
+VK_NUMLOCK . . . . . . . . . . .	Number	 00000090h   
+VK_NUMPAD0 . . . . . . . . . . .	Number	 00000060h   
+VK_NUMPAD1 . . . . . . . . . . .	Number	 00000061h   
+VK_NUMPAD2 . . . . . . . . . . .	Number	 00000062h   
+VK_NUMPAD3 . . . . . . . . . . .	Number	 00000063h   
+VK_NUMPAD4 . . . . . . . . . . .	Number	 00000064h   
+VK_NUMPAD5 . . . . . . . . . . .	Number	 00000065h   
+VK_NUMPAD6 . . . . . . . . . . .	Number	 00000066h   
+VK_NUMPAD7 . . . . . . . . . . .	Number	 00000067h   
+VK_NUMPAD8 . . . . . . . . . . .	Number	 00000068h   
+VK_NUMPAD9 . . . . . . . . . . .	Number	 00000069h   
+VK_PAUSE . . . . . . . . . . . .	Number	 00000013h   
+VK_PRINT . . . . . . . . . . . .	Number	 0000002Ah   
+VK_PRIOR . . . . . . . . . . . .	Number	 00000021h   
+VK_RBUTTON . . . . . . . . . . .	Number	 00000002h   
+VK_RCONTROL  . . . . . . . . . .	Number	 000000A3h   
+VK_RETURN  . . . . . . . . . . .	Number	 0000000Dh   
+VK_RIGHT . . . . . . . . . . . .	Number	 00000027h   
+VK_RMENU . . . . . . . . . . . .	Number	 000000A5h   
+VK_RSHIFT  . . . . . . . . . . .	Number	 000000A1h   
+VK_SCROLL  . . . . . . . . . . .	Number	 00000091h   
+VK_SEPARATER . . . . . . . . . .	Number	 0000006Ch   
+VK_SHIFT . . . . . . . . . . . .	Number	 00000010h   
+VK_SNAPSHOT  . . . . . . . . . .	Number	 0000002Ch   
+VK_SPACE . . . . . . . . . . . .	Number	 00000020h   
+VK_SUBTRACT  . . . . . . . . . .	Number	 0000006Dh   
+VK_TAB . . . . . . . . . . . . .	Number	 00000009h   
+VK_UP  . . . . . . . . . . . . .	Number	 00000026h   
+WINDOW_BUFFER_SIZE_EVENT . . . .	Number	 00000004h   
+WriteConsoleOutputCharacter  . .	Text   	 WriteConsoleOutputCharacterA
+WriteConsole . . . . . . . . . .	Text   	 WriteConsoleA
+arr  . . . . . . . . . . . . . .	DWord	 0000018C _DATA	
+black  . . . . . . . . . . . . .	Number	 00000000h   
+blue . . . . . . . . . . . . . .	Number	 00000001h   
+brown  . . . . . . . . . . . . .	Number	 00000006h   
+buff . . . . . . . . . . . . . .	Byte	 000004DE _DATA	
+cyan . . . . . . . . . . . . . .	Number	 00000003h   
+err_str  . . . . . . . . . . . .	Byte	 0000013B _DATA	
+exit . . . . . . . . . . . . . .	Text   	 INVOKE ExitProcess,0
+fHandle  . . . . . . . . . . . .	DWord	 000004B8 _DATA	
+fname  . . . . . . . . . . . . .	Byte	 000004BC _DATA	
+gray . . . . . . . . . . . . . .	Number	 00000008h   
+green  . . . . . . . . . . . . .	Number	 00000002h   
+intro1 . . . . . . . . . . . . .	Byte	 00000000 _DATA	
+lf . . . . . . . . . . . . . . .	DWord	 000004AC _DATA	
+lightBlue  . . . . . . . . . . .	Number	 00000009h   
+lightCyan  . . . . . . . . . . .	Number	 0000000Bh   
+lightGray  . . . . . . . . . . .	Number	 00000007h   
+lightGreen . . . . . . . . . . .	Number	 0000000Ah   
+lightMagenta . . . . . . . . . .	Number	 0000000Dh   
+lightRed . . . . . . . . . . . .	Number	 0000000Ch   
+local_1  . . . . . . . . . . . .	Text   	 DWORD PTR [ebp-4]
+local_2  . . . . . . . . . . . .	Text   	 DWORD PTR [ebp-8]
+local_3  . . . . . . . . . . . .	Text   	 DWORD PTR [ebp-12]
+magenta  . . . . . . . . . . . .	Number	 00000005h   
+outHandle  . . . . . . . . . . .	DWord	 000004B4 _DATA	
+prompt2  . . . . . . . . . . . .	Byte	 00000166 _DATA	
+prompt . . . . . . . . . . . . .	Byte	 00000103 _DATA	
+red  . . . . . . . . . . . . . .	Number	 00000004h   
+request  . . . . . . . . . . . .	DWord	 00000188 _DATA	
+rt . . . . . . . . . . . . . . .	DWord	 000004B0 _DATA	
+strSort  . . . . . . . . . . . .	Byte	 00000177 _DATA	
+strUn  . . . . . . . . . . . . .	Byte	 00000149 _DATA	
+white  . . . . . . . . . . . . .	Number	 0000000Fh   
+wsprintf . . . . . . . . . . . .	Text   	 wsprintfA
+yellow . . . . . . . . . . . . .	Number	 0000000Eh   
+
+	   0 Warnings
+	   0 Errors
